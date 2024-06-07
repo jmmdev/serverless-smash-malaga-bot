@@ -364,7 +364,7 @@ module.exports = async (request, response) => {
                     }
                 }
 
-                if (!dayIndex >= 0) {
+                if (!(dayIndex >= 0)) {
                     throw new CustomError(`No te apuntaste el ${d.toLowerCase()}, @${user.username || user.first_name}...`);
                 }
 
@@ -416,7 +416,7 @@ module.exports = async (request, response) => {
                     }
                 }
 
-                if (!dayIndex >= 0) {
+                if (!(dayIndex >= 0)) {
                     throw new CustomError(`Pero si no estás apuntado el ${d.toLowerCase()} @${user.username || user.first_name}...`);
                 }
 
