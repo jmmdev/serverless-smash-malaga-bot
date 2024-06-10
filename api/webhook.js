@@ -106,15 +106,15 @@ module.exports = async (request, response) => {
     // Función para generar la lista para la próxima quedada
     function generarListaQuedada(data) {
         let textoQuedada =
-            `Quedada(s) de esta semana:
+`Quedada(s) de esta semana:
 
-    ${data.fechasQuedada}
-    Podéis apuntaros a cualquier día
-    Recordad que el día con más asistentes será el elegido para quedar
+${data.fechasQuedada}
+Podéis apuntaros a cualquier día.
+Recordad que el día con más asistentes será el elegido para quedar
 
-    🕔 16:30 - 20:30
-    🏛 La Ciénaga Hobby Shop (C. Leopoldo Alas "Clarín", 3, 29002 Málaga) - https://goo.gl/maps/9VE1Wp85apkyCpjW6
-    💵 4€ por persona\n`;
+🕔 16:30 - 20:30
+🏛 La Ciénaga Hobby Shop (C. Leopoldo Alas "Clarín", 3, 29002 Málaga) - https://goo.gl/maps/9VE1Wp85apkyCpjW6
+💵 4€ por persona\n`;
 
         for (let f of data.fechas) {  //Por cada fecha que pueda haber quedada se genera una lista de usuarios y setups
             textoQuedada +=
@@ -123,7 +123,7 @@ module.exports = async (request, response) => {
             for (const u of data.listaQuedada) {
                 for (const d of u.dias) {
                     if (d.dia === f.diaSemana) {
-                        textoQuedada += '          - ' + (u.preferredName ? u.preferredName : u.user.username || u.user.first_name) + (d.setup ? ' 🍄' : '') + '\n';
+                        textoQuedada += '          - ' + (u.user.username || u.user.first_name) + (d.setup ? ' 🍄' : '') + '\n';
                     }
                 }
             }
@@ -464,7 +464,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
 
     function fullruleset() {
         return (
-    `1️⃣ El orden de baneo se decide a piedra-papel-tijera. Quien gane, será el primero en banear 3 escenarios.
+`1️⃣ El orden de baneo se decide a piedra-papel-tijera. Quien gane, será el primero en banear 3 escenarios.
 
 2️⃣ Luego, el perdedor baneará otros 4 escenarios.
 
@@ -511,9 +511,38 @@ Si suckeas y quieres dejar de suckear, es tu comando`
         const { body } = request;
 
         const msg = body.message;
+        const chatId = msg.chat.id;
+
+        async function welcome(newMembers) {
+            let memberName;
+            const newChallengerImgPath = "https://serverless-smash-malaga-bot.vercel.app/assets/images/newChallenger.gif"
+            for (let member of newMembers) {
+                memberName = member.username || member.first_name;
+
+                if (member.username !== "smashmalaga_bot") { // Condicional para que no se dé la bienvenida así mismo. Eso es demasiado narcisista y está feo 
+                    const holaIllo =
+                        `¡Nuev@ contrincante! ¡Te doy la bienvenida al grupo de Smash Málaga, @${memberName}! Espero que disfrutes de tu estancia. Recuerda que hacemos quedadas todos los fines de semana. 
+                        \n ¡Escribe /aiuda para saber qué puedes hacer!`;
+        
+                    // Enviar el mensaje de bienvenida al nuevo miembro
+                    await bot.sendAnimation(chatId, newChallengerImgPath, {caption: holaIllo});
+                } else {
+                    await bot.sendMessage(chatId, "¡Estamos activos papi! ¡Hola a todo el mundo! 👋")
+                }
+                return;
+            }
+        }
+
+        // Check new members
+        const newMembers = msg.new_chat_members;
+
+        if (newMembers && newMembers.length > 0) {
+            // Iterar sobre los nuevos miembros
+            await welcome(newMembers);
+        }
+
         const user = msg.from;
 
-        const chatId = msg.chat.id;
         const text = msg.text.trim();
         const textWords = text.split(' ');
         const command = textWords[0];
@@ -525,16 +554,12 @@ Si suckeas y quieres dejar de suckear, es tu comando`
             parsedCommand = command.replace('@smashmalaga_bot', '');
             switch (parsedCommand) {
                 case "/start":
-                    await bot.sendMessage(chatId, '¡Hola! Espero que no os pille desprevenidos. ¡Soy SmashMalagaBot! ' +
-                    'El nombre es horrible, lo sé, pero mi creador, Asancu., está falto de ideas y no se le ocurrió otro, el muy bobo.');
-                    await bot.sendMessage(chatId, `¡Os ayudaré con las quedadas y más!\nEscribid /aiuda para más información.`);
-                    await bot.sendMessage(chatId, 'Gente, estoy en una fase muy temprana de desarrollo y puede que haya errores.' + 
-                    '\n\nEstoy bastante nervioso y no sé cómo saldrá esto, pero cualquier sugerencia podéis escribir a Asancu. o manifestarla por aquí.' +
-                    '\n\n *Desarrolladores*, si estáis interesados, ¡buscadme en GitHub! \n\n ¡Sed buenos!', {parse_mode: 'Markdown'});
+                    await bot.sendMessage(chatId, '¡Hola! Espero que no os pille desprevenidos. ¡Soy SmashMalagaBot y os ayudaré con las quedadas y más!' + 
+                    '\n\nEscribid /aiuda para más información.');
                     break;
                 case "/proximaQuedada":
                     try {
-                            if (chatId !== Number("-1001204113061")) {
+                            if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
                                 throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                             }
 
@@ -560,7 +585,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/apuntame":
                     try {
-                        if (chatId !== Number("-1001204113061")) {
+                        if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
                             throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                         }
 
@@ -581,7 +606,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/apuntarSeta":
                     try {
-                        if (chatId !== Number("-1001204113061")) {
+                        if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
                             throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                         }
 
@@ -602,7 +627,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/quitame":
                     try {
-                        if (chatId !== Number("-1001204113061")) {
+                        if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
                             throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                         }
 
@@ -623,7 +648,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/quitarSeta":
                     try {
-                        if (chatId !== Number("-1001204113061")) {
+                        if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
                             throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                         }
 
@@ -655,34 +680,13 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                 case "/soymalo":
                     await bot.sendMessage(chatId, gitGud());
                     break;
+                case "/getChatId":
+                    await bot.sendMessage(chatId, chatId.toString());
+                    break;
                 default:
                     await bot.sendMessage(chatId, 'Deja de inventarte comandos, por favor');
             }
         }
-
-        // Escucha el evento de nuevos miembros en el grupo
-        bot.on('new_chat_members', (msg) => {
-            const chatId = msg.chat.id;
-            const newMembers = msg.new_chat_members;
-
-            // Iterar sobre los nuevos miembros
-            newMembers?.forEach(async (member) => {
-                const memberName = member.username || member.first_name;
-                const newChallengerImgPath = "https://serverless-smash-malaga-bot.vercel.app/assets/images/newChallenger.gif"
-                if (member.username != "smashmalaga_bot") { // Condicional para que no se dé la bienvenida así mismo. Eso es demasiado narcisista y está feo
-                    await bot.sendAnimation(chatId, newChallengerImgPath);
-
-                    const holaIllo =
-                        `¡Nuev@ contrincante! ¡Te doy la bienvenida al grupo de Smash Málaga, @${memberName}! Espero que disfrutes de tu estancia. Recuerda que hacemos quedadas todos los fines de semana. 
-                        \n ¡Escribe /aiuda para saber qué puedes hacer!`;
-
-                    // Enviar el mensaje de bienvenida al nuevo miembro
-                    await bot.sendMessage(chatId, holaIllo);
-                } else {
-                    await bot.sendMessage(chatId, "¡Estamos activos papi! ¡Hola a todo el mundo! 👋")
-                }
-            });
-        });
     }
     catch(error) {
         console.error('Error sending message');
