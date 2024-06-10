@@ -22,8 +22,8 @@ module.exports = async (request, response) => {
     async function updatePost (paste_content) {
         try {
             const res = await RentryClient.edit({
-                id: 'smash-malaga-bot',
-                token: 'smash-malaga-bot',
+                id: process.env.RENTRY_ID,
+                token: process.env.RENTRY_TOKEN,
                 data: paste_content,
             });
             console.log(res);
@@ -33,7 +33,7 @@ module.exports = async (request, response) => {
     }
 
     async function loadData () {
-        const res = await RentryClient.raw('smash-malaga-bot');
+        const res = await RentryClient.raw(process.env.RENTRY_ID);
         return res.content;
     }
 
