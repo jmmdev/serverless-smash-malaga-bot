@@ -458,7 +458,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
 
     // Esto enviará el ruleset europeo con la imagen del stagelist de Tech Republic IV. Bastante simple.
     function ruleset() {
-        const rulesetPath = `https://serverless-smash-malaga-bot.vercel.app/assets/images/ruleset.jpg?a=${Date.now()}`; // Ruta de la imagen
+        const rulesetPath = `${process.env.BOT_URL}/assets/images/ruleset.jpg?a=${Date.now()}`; // Ruta de la imagen
         return {path: rulesetPath, caption: 'Aquí tienes el ruleset oficial. Se juega a 3 stocks 7 minutos y los bans son 3-4-1.\n\nEscribe /fullruleset para explicarte el procedimiento completo.'};
     }
 
@@ -515,7 +515,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
 
         async function welcome(newMembers) {
             let memberName;
-            const newChallengerImgPath = "https://serverless-smash-malaga-bot.vercel.app/assets/images/newChallenger.gif"
+            const newChallengerImgPath = `${process.env.BOT_URL}/assets/images/newChallenger.gif`
             for (let member of newMembers) {
                 memberName = member.username || member.first_name;
 
