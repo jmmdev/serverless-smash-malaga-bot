@@ -64,7 +64,9 @@ module.exports = async (request, response) => {
     }
 
     function calcularNumeroDia(weekDay) {
-        const hoy = new Date();
+        const date = new Date().toLocaleString("en-US", {timeZone: "Europe/Madrid"})
+        const hoy = new Date(date);
+        
         let numToday = hoy.getDay() - 1;
 
         if (numToday < 0)  // Al cambiar el orden del array de días, por pura legibilidad, hacemos que el domingo sea el día 6
