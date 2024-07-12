@@ -8,22 +8,29 @@ const mes = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "ag
 
 module.exports = async (request, response) => {
 
+    const encKey = process.env.ENCRYPTION_KEY;
+    const rentryId = process.env.RENTRY_ID;
+    const rentryToken = process.env.RENTRY_TOKEN;
+    const botUrl = process.env.BOT_URL;
+    const telegramToken = process.env.TELEGRAM_TOKEN;
+    const idSmashMalaga = process.env.ID_SMASH_MALAGA;
+
     /////////////// rentry methods ///////////////////////
 
     function encryptData(data) {
-        return CryptoJS.AES.encrypt(JSON.stringify(data), process.env.ENCRYPTION_KEY).toString();
+        return CryptoJS.AES.encrypt(JSON.stringify(data), encKey).toString();
     }
 
     function decryptData(cipher) {
-        const bytes = CryptoJS.AES.decrypt(cipher, process.env.ENCRYPTION_KEY);
+        const bytes = CryptoJS.AES.decrypt(cipher, encKey);
         return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
     }
 
     async function updatePost (paste_content) {
         try {
             const res = await RentryClient.edit({
-                id: process.env.RENTRY_ID,
-                token: process.env.RENTRY_TOKEN,
+                id: rentryId,
+                token: rentryToken,
                 data: paste_content,
             });
             console.log(res);
@@ -33,7 +40,7 @@ module.exports = async (request, response) => {
     }
 
     async function loadData () {
-        const res = await RentryClient.raw(process.env.RENTRY_ID);
+        const res = await RentryClient.raw(rentryId);
         return res.content;
     }
 
@@ -116,7 +123,7 @@ Recordad que el día con más asistentes será el elegido para quedar
 
 🕔 16:30 - 20:30
 🏛 La Ciénaga Hobby Shop (C. Leopoldo Alas "Clarín", 3, 29002 Málaga) - https://goo.gl/maps/9VE1Wp85apkyCpjW6
-💵 4€ por persona\n`;
+💵 4€ por persona${data.semanal ? '\n🏆 Semanal: ' + data.semanal : ''}\n`;
 
         for (let f of data.fechas) {  //Por cada fecha que pueda haber quedada se genera una lista de usuarios y setups
             textoQuedada +=
@@ -213,6 +220,29 @@ Recordad que el día con más asistentes será el elegido para quedar
             listaQuedada: [],
             idQuedada: null,
         });
+    }
+
+     // Comando para asignar el semanal
+     async function semanal(msg) {
+        const {data, quedadaExists} = await startingExecution();
+
+        if (!quedadaExists) {
+            throw new CustomError('¡Qué impaciente! ¡Aún no hay quedada creada! Espera a que el staff cree una.');
+        }
+        
+        const user = msg.from;
+            // Verificar si el usuario existe
+        if (user) {
+            let url = msg.text?.replace('/semanal', '');  // De aquí sacamos el enlace de la quedada
+            let regex = /^.*start.gg\/tournament[\w\d\S]+$/;
+
+            if (!url.match(regex)) {
+                throw new CustomError('Ese enlace no es de un torneo de start.gg, compruébalo e inténtalo otra vez.')
+            }
+
+            data.semanal = url;
+            return data;
+        }
     }
 
     // Comando para apuntarse a la quedada
@@ -460,7 +490,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
 
     // Esto enviará el ruleset europeo con la imagen del stagelist de Tech Republic IV. Bastante simple.
     function ruleset() {
-        const rulesetPath = `${process.env.BOT_URL}/assets/images/ruleset.jpg?a=${Date.now()}`; // Ruta de la imagen
+        const rulesetPath = `${botUrl}/assets/images/ruleset.jpg?a=${Date.now()}`; // Ruta de la imagen
         return {path: rulesetPath, caption: 'Aquí tienes el ruleset oficial. Se juega a 3 stocks 7 minutos y los bans son 3-4-1.\n\nEscribe /fullruleset para explicarte el procedimiento completo.'};
     }
 
@@ -507,7 +537,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
         // Create our new bot handler with the token
         // that the Botfather gave us
         // Use an environment variable so we don't expose it in our code
-        const bot = new TelegramBot(process.env.TELEGRAM_TOKEN);
+        const bot = new TelegramBot(telegramToken);
 
         // Retrieve the POST request body that gets sent from Telegram
         const { body } = request;
@@ -517,7 +547,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
 
         async function welcome(newMembers) {
             let memberName;
-            const newChallengerImgPath = `${process.env.BOT_URL}/assets/images/newChallenger.gif`
+            const newChallengerImgPath = `${botUrl}/assets/images/newChallenger.gif`
             for (let member of newMembers) {
                 memberName = member.username || member.first_name;
 
@@ -561,13 +591,13 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/proximaQuedada":
                     try {
-                            if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
+                            if (chatId !== Number(idSmashMalaga)) {
                                 throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                             }
 
                             if (user) {
                                 const chatMember = await bot.getChatMember(chatId, user.id);
-                                if (!chatMember.status === "administrator" && !chatMember.status === "creator") {
+                                if (!(chatMember.status === "administrator" || chatMember.status === "creator")) {
                                     throw new CustomError(`Buen intento, @${user.username || user.first_name}, pero no eres admin ni mucho menos creador...`);
                                 }
 
@@ -585,9 +615,33 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                         }
                     }
                     break;
+                case "/semanal":
+                    try {
+                            if (chatId !== Number(idSmashMalaga)) {
+                                throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
+                            }
+
+                            if (user) {
+                                const chatMember = await bot.getChatMember(chatId, user.id);
+                                if (!(chatMember.status === "administrator" || chatMember.status === "creator")) {
+                                    throw new CustomError(`Buen intento, @${user.username || user.first_name}, pero no eres admin ni mucho menos creador...`);
+                                }
+
+                                const modifiedData = await semanal(msg);
+                                await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
+
+                                const encryptedData = encryptData(modifiedData);
+                                await updatePost(encryptedData);
+                            }
+                    } catch (e) {
+                        if (e.name === "CustomError"){
+                            await bot.sendMessage(chatId, e.message);
+                        }
+                    }
+                    break;
                 case "/apuntame":
                     try {
-                        if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
+                        if (chatId !== Number(idSmashMalaga)) {
                             throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                         }
 
@@ -608,7 +662,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/apuntarSeta":
                     try {
-                        if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
+                        if (chatId !== Number(idSmashMalaga)) {
                             throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                         }
 
@@ -629,7 +683,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/quitame":
                     try {
-                        if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
+                        if (chatId !== Number(idSmashMalaga)) {
                             throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                         }
 
@@ -650,7 +704,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/quitarSeta":
                     try {
-                        if (chatId !== Number(process.env.ID_SMASH_MALAGA)) {
+                        if (chatId !== Number(idSmashMalaga)) {
                             throw new CustomError(`Lo siento, ¡esta función es exclusiva del grupo Smash Málaga!`);
                         }
 
@@ -681,9 +735,6 @@ Si suckeas y quieres dejar de suckear, es tu comando`
                     break;
                 case "/soymalo":
                     await bot.sendMessage(chatId, gitGud());
-                    break;
-                case "/getChatId":
-                    await bot.sendMessage(chatId, chatId.toString());
                     break;
                 default:
                     await bot.sendMessage(chatId, 'Deja de inventarte comandos, por favor');
