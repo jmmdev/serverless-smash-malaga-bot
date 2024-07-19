@@ -115,15 +115,16 @@ module.exports = async (request, response) => {
     // Función para generar la lista para la próxima quedada
     function generarListaQuedada(data) {
         let textoQuedada =
-`Quedada(s) de esta semana:
+`📢 Quedada(s) de esta semana:
 
 ${data.fechasQuedada}
 Podéis apuntaros a cualquier día.
-Recordad que el día con más asistentes será el elegido para quedar
+Recordad que el día con más asistentes será el elegido para quedar.
 
 🕔 16:30 - 20:30
 🏛 La Ciénaga Hobby Shop (C. Leopoldo Alas "Clarín", 3, 29002 Málaga) - https://goo.gl/maps/9VE1Wp85apkyCpjW6
-💵 4€ por persona${data.semanal ? '\n🏆 Semanal: ' + data.semanal : ''}\n`;
+💵 4€ por persona
+${data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : ''}\n`;
 
         for (let f of data.fechas) {  //Por cada fecha que pueda haber quedada se genera una lista de usuarios y setups
             textoQuedada +=
@@ -516,20 +517,19 @@ Si suckeas y quieres dejar de suckear, es tu comando`
 
     function gitGud() {
         return (
-    `Así que eres malísim@, no te preocupes, aquí te dejo un documento espectacular:
+`Así que eres malísim@, no te preocupes, aquí te dejo un documento espectacular:
 
-    https://docs.google.com/document/d/1WaDOm4X1iDxfXb7oHQBRE7tPD9wX9mLdagw4JzqzT4w/edit?pli=1
+https://docs.google.com/document/d/1WaDOm4X1iDxfXb7oHQBRE7tPD9wX9mLdagw4JzqzT4w/edit?pli=1
 
-    Tiene de todo:
+Tiene de todo:
 
-    - Enlace a todos los discord de Smash Ultimate de interés
-    - Varias herramientas con información técnica del juego
-    - Guías (escritas y audiovisuales) de todos los niveles que abarcan desde los aspectos más básicos del juego a los más top 
-    - Notas de todos los parches
-    - Información sobre organizaciones, equipos y torneos de Smash Ultimate
+- Enlace a todos los discord de Smash Ultimate de interés
+- Varias herramientas con información técnica del juego
+- Guías (escritas y audiovisuales) de todos los niveles que abarcan desde los aspectos más básicos del juego a los más top 
+- Notas de todos los parches
+- Información sobre organizaciones, equipos y torneos de Smash Ultimate
 
-    Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pregunta en este grupo
-    `
+Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pregunta en este grupo`
         )
     }
 
@@ -553,13 +553,14 @@ Si suckeas y quieres dejar de suckear, es tu comando`
 
                 if (member.username !== "smashmalaga_bot") { // Condicional para que no se dé la bienvenida así mismo. Eso es demasiado narcisista y está feo 
                     const holaIllo =
-                        `¡Nuev@ contrincante! ¡Te doy la bienvenida al grupo de Smash Málaga, @${memberName}! Espero que disfrutes de tu estancia. Recuerda que hacemos quedadas todos los fines de semana. 
-                        \n ¡Escribe /aiuda para saber qué puedes hacer!`;
+`¡Nuev@ contrincante! ¡Te doy la bienvenida al grupo de Smash Málaga, @${memberName}! Espero que disfrutes de tu estancia. Recuerda que hacemos quedadas todos los fines de semana. 
+
+¡Escribe /aiuda para saber qué puedes hacer!`;
         
                     // Enviar el mensaje de bienvenida al nuevo miembro
                     await bot.sendAnimation(chatId, newChallengerImgPath, {caption: holaIllo});
                 } else {
-                    await bot.sendMessage(chatId, "¡Estamos activos papi! ¡Hola a todo el mundo! 👋")
+                    await bot.sendMessage(chatId, "¡Estamos activos! ¡Hola a todo el mundo! 👋")
                 }
                 return;
             }
@@ -629,6 +630,7 @@ Si suckeas y quieres dejar de suckear, es tu comando`
 
                                 const modifiedData = await semanal(msg);
                                 await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
+                                await bot.sendMessage(chatId, `¡Semanal actualizado, @${user.username || user.first_name}! Comprueba el mensaje fijado de la quedada.`);
 
                                 const encryptedData = encryptData(modifiedData);
                                 await updatePost(encryptedData);
