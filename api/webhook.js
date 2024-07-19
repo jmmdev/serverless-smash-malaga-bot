@@ -123,8 +123,9 @@ Recordad que el día con más asistentes será el elegido para quedar.
 
 🕔 16:30 - 20:30
 🏛 La Ciénaga Hobby Shop (C. Leopoldo Alas "Clarín", 3, 29002 Málaga) - https://goo.gl/maps/9VE1Wp85apkyCpjW6
-💵 4€ por persona\n` +
-data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : '';
+💵 4€ por persona\n`;
+
+textoQuedada += data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : '';
 
         for (let f of data.fechas) {  //Por cada fecha que pueda haber quedada se genera una lista de usuarios y setups
             textoQuedada +=
