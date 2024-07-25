@@ -128,8 +128,16 @@ Recordad que el día con más asistentes será el elegido para quedar.
 textoQuedada += data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : '';
 
         for (let f of data.fechas) {  //Por cada fecha que pueda haber quedada se genera una lista de usuarios y setups
+            const len = data.listaQuedada.filter(
+                (obj) => {
+                    if (obj.dias.some(d => d.dia === f.diaSemana)) {
+                        return true;
+                    }
+                    return false;
+                }
+            ).length;
             textoQuedada +=
-                `\n👥 Asistentes ${f.diaSemana} ${f.numeroDia}:\n`;
+                `\n👥 Asistentes ${f.diaSemana} ${f.numeroDia} (${len}):\n`;
 
             for (const u of data.listaQuedada) {
                 for (const d of u.dias) {
@@ -738,6 +746,10 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                     break;
                 case "/soymalo":
                     await bot.sendMessage(chatId, gitGud());
+                    break;
+                case "/refresh":
+                    const {data, quedadaExists} = await startingExecution();
+                    await bot.editMessageText(generarListaQuedada(data), { chat_id: idSmashMalaga, message_id: data.idQuedada });
                     break;
                 default:
                     await bot.sendMessage(chatId, 'Deja de inventarte comandos, por favor');
