@@ -233,168 +233,107 @@ textoQuedada += data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : '';
     }
 
      // Comando para asignar el semanal
-     async function semanal(msg) {
+     async function semanal(user, chatMember, msg) {
         const {data, quedadaExists} = await startingExecution();
 
         if (!quedadaExists) {
             throw new CustomError('¡Qué impaciente! ¡Aún no hay quedada creada! Espera a que el staff cree una.');
         }
-        
-        const user = msg.from;
-            // Verificar si el usuario existe
-        if (user) {
-            let url = msg.text?.replace('/semanal', '');  // De aquí sacamos el enlace de la quedada
-            let regex = /^.*start.gg\/tournament[\w\d\S]+$/;
 
-            if (!url.match(regex)) {
-                throw new CustomError('Ese enlace no es de un torneo de start.gg, compruébalo e inténtalo otra vez.')
-            }
+        let url = msg.text?.replace('/semanal', '').trim();  // De aquí sacamos el enlace de la quedada
 
-            data.semanal = url;
-            return data;
+        if (url.length <= 0) {
+            throw new CustomError(data.semanal ? `Bracket del semanal: ${data.semanal}` : 'Todavía no hay semanal asignado a la quedada')
         }
+        
+        if (chatMember.status !== "administrator" && chatMember.status !== "creator") {
+            throw new CustomError(`Buen intento, @${user.username || user.first_name}, pero no eres admin ni mucho menos creador...`);
+        }
+
+        let regex = /^.*start.gg\/tournament[\w\d\S]+$/;
+
+        if (!url.match(regex)) {
+            throw new CustomError(`La información proporcionada "${url}" no es de un torneo de start.gg, compruébalo e inténtalo otra vez.`)
+        }
+
+        data.semanal = url;
+        return data;
     }
 
     // Comando para apuntarse a la quedada
-    async function apuntame(msg) {
+    async function apuntame(user, msg) {
         const {data, quedadaExists} = await startingExecution();
 
         if (!quedadaExists) {
             throw new CustomError('¡Qué impaciente! ¡Aún no hay quedada creada! Espera a que el staff cree una.');
         }
-        
-        const user = msg.from;
-            // Verificar si el usuario existe
-        if (user) {
-            let dias = msg.text?.replace('/apuntame', '');  // De aquí sacamos los días que se apunte el usuario, ej:   /apuntame viernes sabado
+        let dias = msg.text?.replace('/apuntame', '');  // De aquí sacamos los días que se apunte el usuario, ej:   /apuntame viernes sabado
 
-            if (!dias || !dias.length > 0) {
-                throw new CustomError(`¿Pero qué días quieres ir, @${user.username || user.first_name}? \n Recuerda: "/apuntame [día/s]".`);   
-            }
-
-            // Si el usuario ha puesto algo después del /apuntame, entra
-            const arrayDias = dias.trim().split(' ')  // Sacamos los dias que haya puesto el usuario
-            const actualDias = procesarDias(arrayDias, true, data.fechas)  // Comprobamos que sean días válidos, no sea que el usuario haya puesto /apuntame yogurt chorizo
-
-            if (!actualDias.length > 0) {   // Si hay al menos un día válido, seguimos
-                throw new CustomError(`Debes poner al menos un día valido, @${user.username || user.first_name}...`)
-            }
-
-            
-            const userData = userApuntado(user, data.listaQuedada);  // Comprobamos si el usuario ya estaba apuntado a algo
-
-            if (userData.exists) {       // Si el usuario ya estaba apuntado, hay que hacer unas comprobaciones
-                for (const d of actualDias) {
-                    let found = false;
-
-                    for (const e of userData.dias) {            // En este bloque se comprueba si en los días que el usuario se ha apuntado a cosas
-                        if (!found) {                           // están incluidos días que ha introducido con /apuntame
-                            found = d === e.dia;
-                        }
-                    }
-
-                    if (found) {         // Si el día ya está incluido en sus días, se le avisa de que ya estaba apuntado
-                        throw new CustomError( `Ya estabas apuntad@ el ${d.toLowerCase()}, @${user.username || user.first_name}...`);
-                    }       // Si no, se incluye en sus días y cambiamos la variable para editar el fijado
-                    data.listaQuedada[userData.index].dias.push({ dia: d, setup: false });
-                }
-            } else {  // Si el usuario no estaba apuntado a nada, se le apunta a los días directamente
-                let diasData = [];
-                for (const d of actualDias) {
-                    diasData.push({ dia: d, setup: false });
-                }
-                data.listaQuedada.push({ user: user, dias: diasData });  // Se introduce el nuevo usuario
-            }
-            return data;
+        if (!dias || !dias.length > 0) {
+            throw new CustomError(`¿Pero qué días quieres ir, @${user.username || user.first_name}? \n Recuerda: "/apuntame [día/s]".`);   
         }
+
+        // Si el usuario ha puesto algo después del /apuntame, entra
+        const arrayDias = dias.trim().split(' ')  // Sacamos los dias que haya puesto el usuario
+        const actualDias = procesarDias(arrayDias, true, data.fechas)  // Comprobamos que sean días válidos, no sea que el usuario haya puesto /apuntame yogurt chorizo
+
+        if (!actualDias.length > 0) {   // Si hay al menos un día válido, seguimos
+            throw new CustomError(`Debes poner al menos un día valido, @${user.username || user.first_name}...`)
+        }
+
+        
+        const userData = userApuntado(user, data.listaQuedada);  // Comprobamos si el usuario ya estaba apuntado a algo
+
+        if (userData.exists) {       // Si el usuario ya estaba apuntado, hay que hacer unas comprobaciones
+            for (const d of actualDias) {
+                let found = false;
+
+                for (const e of userData.dias) {            // En este bloque se comprueba si en los días que el usuario se ha apuntado a cosas
+                    if (!found) {                           // están incluidos días que ha introducido con /apuntame
+                        found = d === e.dia;
+                    }
+                }
+
+                if (found) {         // Si el día ya está incluido en sus días, se le avisa de que ya estaba apuntado
+                    throw new CustomError( `Ya estabas apuntad@ el ${d.toLowerCase()}, @${user.username || user.first_name}...`);
+                }       // Si no, se incluye en sus días y cambiamos la variable para editar el fijado
+                data.listaQuedada[userData.index].dias.push({ dia: d, setup: false });
+            }
+        } else {  // Si el usuario no estaba apuntado a nada, se le apunta a los días directamente
+            let diasData = [];
+            for (const d of actualDias) {
+                diasData.push({ dia: d, setup: false });
+            }
+            data.listaQuedada.push({ user: user, dias: diasData });  // Se introduce el nuevo usuario
+        }
+        return data;
     }
 
-    async function apuntarSeta(msg) {
+    async function apuntarSeta(user, msg) {
         const {data, quedadaExists} = await startingExecution();
 
         if (!quedadaExists) {
             throw new CustomError('¡No hay quedada aún! De momento, juega con tu setup en casa, ¿vale?');
         }
-        const user = msg.from;
+        let dias = msg.text?.replace('/apuntarSeta', '');
 
-        if (user) {
-            let dias = msg.text?.replace('/apuntarSeta', '');
-
-            if (!dias || !dias.length > 0) {
-                throw new CustomError(`¿Y qué días quieres llevar setup, @${user.username || user.first_name}? \n Recuerda: /apuntarSeta [día/s].`);
-            }
-
-            const arrayDias = dias.trim().split(' ')
-            const actualDias = procesarDias(arrayDias, true, data.fechas);
-
-
-            if (!actualDias.length > 0) {
-                throw new CustomError(`Debes poner al menos un día valido, @${user.username || user.first_name}...`)
-            }
-
-            let diasData = [];
-            const userData = userApuntado(user, data.listaQuedada);
-
-            if (userData.exists) {
-                diasData = userData.dias;
-                for (const d of actualDias) {
-                    let found = false;
-                    let dayIndex = -1;
-
-                    for (const [index, e] of userData.dias.entries()) {
-                        found = d === e.dia;
-                        if (found) {
-                            dayIndex = index;
-                        }
-                    }
-
-                    if (dayIndex >= 0) {
-                        if (data.listaQuedada[userData.index].dias[dayIndex].setup) {
-                            throw new CustomError(`Ya llevas setup el ${d.toLowerCase()}, @${user.username || user.first_name}...`);
-                        }
-                        data.listaQuedada[userData.index].dias[dayIndex].setup = true;
-                    } else {
-                        diasData.push({ dia: d, setup: true });
-                    }
-                }
-            } else {
-                for (const d of actualDias) {
-                    diasData.push({ dia: d, setup: true });
-                }
-                data.listaQuedada.push({ user: user, dias: diasData });
-            }
-            return data;
+        if (!dias || !dias.length > 0) {
+            throw new CustomError(`¿Y qué días quieres llevar setup, @${user.username || user.first_name}? \n Recuerda: /apuntarSeta [día/s].`);
         }
-    }
 
-    async function quitarSeta(msg) {  // Función homóloga a /apuntarSeta. En este caso se puede asumir que es la función contraria y, en general, las condiciones estarán invertidas
-        const {data, quedadaExists} = await startingExecution();
+        const arrayDias = dias.trim().split(' ')
+        const actualDias = procesarDias(arrayDias, true, data.fechas);
 
-        if (!quedadaExists) {
-            throw new CustomError('No necesitamos setup porque... ¡no hay ninguna quedada, ill@!');
+
+        if (!actualDias.length > 0) {
+            throw new CustomError(`Debes poner al menos un día valido, @${user.username || user.first_name}...`)
         }
-        
-        const user = msg.from;
 
-        if (user) {
-            let dias = msg.text?.replace('/quitarSeta', '');
+        let diasData = [];
+        const userData = userApuntado(user, data.listaQuedada);
 
-            if (!dias || !dias.length > 0) {
-                throw new CustomError(`¿Podrías especificar qué días no vas a llevar setup, @${user.username || user.first_name}? \n Recuerda: "/quitarSeta [día/s]".`);
-            }
-            const arrayDias = dias.trim().split(' ')
-            const actualDias = procesarDias(arrayDias, true, data.fechas)
-
-            if (!actualDias.length > 0) {
-                throw new CustomError(`Debes poner al menos un día valido, @${user.username || user.first_name}...`);
-            }
-
-            const userData = userApuntado(user, data.listaQuedada);
-
-            if (!userData.exists) {
-                throw new CustomError(`No estás apuntado a ningún día, @${user.username || user.first_name}...`);
-            }
-
+        if (userData.exists) {
+            diasData = userData.dias;
             for (const d of actualDias) {
                 let found = false;
                 let dayIndex = -1;
@@ -406,69 +345,118 @@ textoQuedada += data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : '';
                     }
                 }
 
-                if (!(dayIndex >= 0)) {
-                    throw new CustomError(`No te apuntaste el ${d.toLowerCase()}, @${user.username || user.first_name}...`);
+                if (dayIndex >= 0) {
+                    if (data.listaQuedada[userData.index].dias[dayIndex].setup) {
+                        throw new CustomError(`Ya llevas setup el ${d.toLowerCase()}, @${user.username || user.first_name}...`);
+                    }
+                    data.listaQuedada[userData.index].dias[dayIndex].setup = true;
+                } else {
+                    diasData.push({ dia: d, setup: true });
                 }
-
-                if (!data.listaQuedada[userData.index].dias[dayIndex].setup) {
-                    throw new CustomError(`No traías setup el ${d.toLowerCase()} de todos modos, @${user.username || user.first_name}...`);
-                }
-                    data.listaQuedada[userData.index].dias[dayIndex].setup = false;
             }
-            return data;
+        } else {
+            for (const d of actualDias) {
+                diasData.push({ dia: d, setup: true });
+            }
+            data.listaQuedada.push({ user: user, dias: diasData });
         }
+        return data;
     }
 
-    async function quitame (msg) {  // Función homóloga a /apuntame. En este caso se puede asumir que es la función contraria y, en general, las condiciones estarán invertidas
+    async function quitame (user, msg) {  // Función homóloga a /apuntame. En este caso se puede asumir que es la función contraria y, en general, las condiciones estarán invertidas
         const {data, quedadaExists} = await startingExecution();
 
         if (!quedadaExists) {
             throw new CustomError('¡Echa el freno, madaleno! ¡No se ha anunciado ninguna quedada!');
         }
+        let dias = msg.text?.replace('/quitame', '');
 
-        const user = msg.from;
-        if (user) {
-            let dias = msg.text?.replace('/quitame', '');
-
-            if (!dias || !dias.length > 0) {
-                throw new CustomError(`¿Y de qué días te quieres quitar, @${user.username || user.first_name}? \n Recuerda: "/quitame [día/s]"`);
-            }
-
-            const arrayDias = dias.trim().split(' ');
-            const actualDias = procesarDias(arrayDias, true, data.fechas);
-
-            if (!actualDias.length > 0) {
-                throw new CustomError(`Debes poner al menos un día valido, @${user.username || user.first_name}...`);
-            }
-
-            const userData = userApuntado(user, data.listaQuedada);
-
-            if (!userData.exists) {
-                throw new CustomError(`No estás apuntado a ningún día, @${user.username || user.first_name}...`);
-            }
-
-            for (const d of actualDias) {
-                let found = false;
-                let dayIndex = -1;
-
-                for (const [index, e] of userData.dias.entries()) {
-                    found = d === e.dia;
-                    if (found) {
-                        dayIndex = index;
-                    }
-                }
-
-                if (!(dayIndex >= 0)) {
-                    throw new CustomError(`Pero si no estás apuntado el ${d.toLowerCase()} @${user.username || user.first_name}...`);
-                }
-
-                data.listaQuedada[userData.index].dias.splice(dayIndex, 1);
-                if (data.listaQuedada[userData.index].dias.length <= 0) {
-                    data.listaQuedada.splice(userData.index, 1);
-                }
-            }
-            return data;
+        if (!dias || !dias.length > 0) {
+            throw new CustomError(`¿Y de qué días te quieres quitar, @${user.username || user.first_name}? \n Recuerda: "/quitame [día/s]"`);
         }
+
+        const arrayDias = dias.trim().split(' ');
+        const actualDias = procesarDias(arrayDias, true, data.fechas);
+
+        if (!actualDias.length > 0) {
+            throw new CustomError(`Debes poner al menos un día valido, @${user.username || user.first_name}...`);
+        }
+
+        const userData = userApuntado(user, data.listaQuedada);
+
+        if (!userData.exists) {
+            throw new CustomError(`No estás apuntado a ningún día, @${user.username || user.first_name}...`);
+        }
+
+        for (const d of actualDias) {
+            let found = false;
+            let dayIndex = -1;
+
+            for (const [index, e] of userData.dias.entries()) {
+                found = d === e.dia;
+                if (found) {
+                    dayIndex = index;
+                }
+            }
+
+            if (!(dayIndex >= 0)) {
+                throw new CustomError(`Pero si no estás apuntado el ${d.toLowerCase()} @${user.username || user.first_name}...`);
+            }
+
+            data.listaQuedada[userData.index].dias.splice(dayIndex, 1);
+            if (data.listaQuedada[userData.index].dias.length <= 0) {
+                data.listaQuedada.splice(userData.index, 1);
+            }
+        }
+        return data;
+    }
+
+    async function quitarSeta(user, msg) {  // Función homóloga a /apuntarSeta. En este caso se puede asumir que es la función contraria y, en general, las condiciones estarán invertidas
+        const {data, quedadaExists} = await startingExecution();
+
+        if (!quedadaExists) {
+            throw new CustomError('No necesitamos setup porque... ¡no hay ninguna quedada, ill@!');
+        }
+
+        let dias = msg.text?.replace('/quitarSeta', '');
+
+        if (!dias || !dias.length > 0) {
+            throw new CustomError(`¿Podrías especificar qué días no vas a llevar setup, @${user.username || user.first_name}? \n Recuerda: "/quitarSeta [día/s]".`);
+        }
+        const arrayDias = dias.trim().split(' ')
+        const actualDias = procesarDias(arrayDias, true, data.fechas)
+
+        if (!actualDias.length > 0) {
+            throw new CustomError(`Debes poner al menos un día valido, @${user.username || user.first_name}...`);
+        }
+
+        const userData = userApuntado(user, data.listaQuedada);
+
+        if (!userData.exists) {
+            throw new CustomError(`No estás apuntado a ningún día, @${user.username || user.first_name}...`);
+        }
+
+        for (const d of actualDias) {
+            let found = false;
+            let dayIndex = -1;
+
+            for (const [index, e] of userData.dias.entries()) {
+                found = d === e.dia;
+                if (found) {
+                    dayIndex = index;
+                }
+            }
+
+            if (!(dayIndex >= 0)) {
+                throw new CustomError(`No te apuntaste el ${d.toLowerCase()}, @${user.username || user.first_name}...`);
+            }
+
+            if (!data.listaQuedada[userData.index].dias[dayIndex].setup) {
+                throw new CustomError(`No traías setup el ${d.toLowerCase()} de todos modos, @${user.username || user.first_name}...`);
+            }
+                data.listaQuedada[userData.index].dias[dayIndex].setup = false;
+        }
+        return data;
     }
 
     function aiuda() {  // La misma función que tenías, ligeramente formateada y con la información nueva
@@ -633,11 +621,8 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
 
                             if (user) {
                                 const chatMember = await bot.getChatMember(chatId, user.id);
-                                if (!(chatMember.status === "administrator" || chatMember.status === "creator")) {
-                                    throw new CustomError(`Buen intento, @${user.username || user.first_name}, pero no eres admin ni mucho menos creador...`);
-                                }
 
-                                const modifiedData = await semanal(msg);
+                                const modifiedData = await semanal(user, chatMember, msg);
                                 await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                                 await bot.sendMessage(chatId, `¡Semanal actualizado, @${user.username || user.first_name}! Comprueba el mensaje fijado de la quedada.`);
 
@@ -657,7 +642,7 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                         }
 
                         if (user) {
-                            const modifiedData = await apuntame(msg);
+                            const modifiedData = await apuntame(user, msg);
                             await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                             await bot.sendMessage(chatId, `¡Vale, estás dentro, @${user.username || user.first_name}!`);
                             
@@ -678,7 +663,7 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                         }
 
                         if (user) {
-                            const modifiedData = await apuntarSeta(msg);
+                            const modifiedData = await apuntarSeta(user, msg);
                             await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                             await bot.sendMessage(chatId, `¡Setup apuntada, @${user.username || user.first_name}! Gracias por aportar material. 😊`);
 
@@ -699,7 +684,7 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                         }
 
                         if (user) {
-                            const modifiedData = await quitame(msg);
+                            const modifiedData = await quitame(user, msg);
                             await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                             await bot.sendMessage(chatId, `¡Ya no estás en la quedada, @${user.username || user.first_name}! Esperamos verte en la próxima.`);
 
@@ -720,7 +705,7 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                         }
 
                         if (user) {
-                            const modifiedData = await quitarSeta(msg);
+                            const modifiedData = await quitarSeta(user, msg);
                             await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                             await bot.sendMessage(chatId, `¡Setup quitada, @${user.username || user.first_name}!`);
 
