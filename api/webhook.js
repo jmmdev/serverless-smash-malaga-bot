@@ -243,7 +243,7 @@ textoQuedada += data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : '';
         let url = msg.text?.replace('/semanal', '').trim();  // De aquí sacamos el enlace de la quedada
 
         if (url.length <= 0) {
-            throw new CustomError(data.semanal ? `Bracket del semanal: ${data.semanal}` : 'Todavía no hay semanal asignado a la quedada')
+            throw new CustomError(data.semanal ? `Bracket del semanal \n\n${data.semanal}` : 'Todavía no hay semanal asignado a la quedada.')
         }
         
         if (chatMember.status !== "administrator" && chatMember.status !== "creator") {
