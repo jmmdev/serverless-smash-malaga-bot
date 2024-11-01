@@ -732,12 +732,9 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                 case "/soymalo":
                     await bot.sendMessage(chatId, gitGud());
                     break;
-                case "/refresh":
-                    const {data, quedadaExists} = await startingExecution();
-                    await bot.editMessageText(generarListaQuedada(data), { chat_id: idSmashMalaga, message_id: data.idQuedada });
-                    break;
                 default:
                     await bot.sendMessage(chatId, 'Deja de inventarte comandos, por favor');
+                    break;
             }
         }
     }
