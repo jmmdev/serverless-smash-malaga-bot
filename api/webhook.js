@@ -1,7 +1,10 @@
 // Require our Telegram helper package
 const TelegramBot = require('node-telegram-bot-api');
 const RentryClient = require("rentry-client");
+const RentryCo = require("rentry-co");
 const CryptoJS = require('crypto-js');
+
+const rentry = new RentryCo();
 
 const diaSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]; // Array con días de la semana
 const mes = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]; // Array con los meses
@@ -28,11 +31,16 @@ module.exports = async (request, response) => {
 
     async function updatePost (paste_content) {
         try {
-            const res = await RentryClient.edit({
+            const res = await rentry.update({
+                id: rentryId,
+                token: rentryToken,
+                content: paste_content,
+              });
+            /*const res = await RentryClient.edit({
                 id: rentryId,
                 token: rentryToken,
                 data: paste_content,
-            });
+            });*/
             console.log(res);
         } catch (e) {
             console.log(e.message, 'Error while updating post. Please try again');
@@ -40,7 +48,8 @@ module.exports = async (request, response) => {
     }
 
     async function loadData () {
-        const res = await RentryClient.raw(rentryId);
+        const res = await rentry.read({ id: rentryId });
+        //const res = await RentryClient.raw(rentryId);
         return res.content;
     }
 
@@ -654,6 +663,21 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                         if (e.name === "CustomError"){
                             await bot.sendMessage(chatId, e.message);
                         }
+                    }
+                    break;
+                case "/apuntameTest":
+                    try {
+                        if (user) {
+                            const modifiedData = await apuntame(user, msg);
+                            await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
+                            await bot.sendMessage(chatId, `¡Vale, estás dentro, @${user.username || user.first_name}!`);
+                            
+                            const encryptedData = encryptData(modifiedData);
+                            await updatePost(encryptedData);
+                        }
+                    }
+                    catch (e) {
+                        await bot.sendMessage(chatId, JSON.stringify(e));
                     }
                     break;
                 case "/apuntarSeta":
