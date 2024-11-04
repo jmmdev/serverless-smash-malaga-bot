@@ -13,7 +13,6 @@
     "crypto-js": "^4.2.0",
     "node-cron": "^3.0.3",
     "node-telegram-bot-api": "^0.66.0",
-    "rentry-client": "^1.0.2",
-    "rentry-co": "^1.2.0"
+    "rentry-client": "^1.0.2"
   }
 }

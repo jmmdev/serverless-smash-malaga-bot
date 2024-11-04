@@ -1,59 +1,49 @@
 // Require our Telegram helper package
-const TelegramBot = require('node-telegram-bot-api');
-const RentryClient = require("rentry-client");
-const RentryCo = require("rentry-co");
-const CryptoJS = require('crypto-js');
-
-const rentry = new RentryCo();
+const TelegramBot = require("node-telegram-bot-api");
 
 const diaSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]; // Array con días de la semana
 const mes = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]; // Array con los meses
 
 module.exports = async (request, response) => {
-
-    const encKey = process.env.ENCRYPTION_KEY;
-    const rentryId = process.env.RENTRY_ID;
-    const rentryToken = process.env.RENTRY_TOKEN;
     const botUrl = process.env.BOT_URL;
     const telegramToken = process.env.TELEGRAM_TOKEN;
     const idSmashMalaga = process.env.ID_SMASH_MALAGA;
 
-    /////////////// rentry methods ///////////////////////
+    /////////////// database methods ///////////////////////
 
-    function encryptData(data) {
-        return CryptoJS.AES.encrypt(JSON.stringify(data), encKey).toString();
-    }
-
-    function decryptData(cipher) {
-        const bytes = CryptoJS.AES.decrypt(cipher, encKey);
-        return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-    }
-
-    async function updatePost (paste_content) {
-        try {
-            const res = await rentry.update({
-                id: rentryId,
-                token: rentryToken,
-                content: paste_content,
-              });
-            /*const res = await RentryClient.edit({
+    async function updatePost (newData) {
+        /*try {
+            const res = await RentryClient.edit({
                 id: rentryId,
                 token: rentryToken,
                 data: paste_content,
-            });*/
+            });
             console.log(res);
         } catch (e) {
             console.log(e.message, 'Error while updating post. Please try again');
+        }*/
+        let myString = null;
+        if (typeof(newData) !== "string") {
+            myString = JSON.stringify(newData);
         }
+        const res = await fetch(`https://serverless-smash-malaga-bot-rentry-backend.vercel.app/update?info=${myString || newData}`, {
+            method: 'POST',
+        });
+        console.log(res);
     }
 
     async function loadData () {
-        const res = await rentry.read({ id: rentryId });
-        //const res = await RentryClient.raw(rentryId);
-        return res.content;
+        /*const res = await RentryClient.raw(rentryId);
+        return res.content;*/
+
+        const response = await fetch('https://serverless-smash-malaga-bot-rentry-backend.vercel.app', {
+            method: 'GET',
+        })
+        const json = await response.json();
+        return json.data;
     }
 
-    ////////////////////////// rentry methods end ///////////////////////////////
+    ////////////////////////// database methods end ///////////////////////////////
 
     
     function fechaProximaQuedada(dias) {  // Función que genera las fechas para cada indicador de /proximaQuedada
@@ -197,8 +187,8 @@ textoQuedada += data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : '';
     }
 
     async function startingExecution() {  // Función que recupera y descrifra los datos de la quedada, y comprueba si hay quedada o no
-        const cipher = await loadData();
-        const data = decryptData(cipher);
+        const dataString = await loadData();
+        const data = JSON.parse(dataString);
         const quedadaExists = Object.entries(data).length > 0;
 
         return {data, quedadaExists};
@@ -276,6 +266,7 @@ textoQuedada += data.semanal ? '🏆 Semanal: ' + data.semanal + '\n' : '';
         if (!quedadaExists) {
             throw new CustomError('¡Qué impaciente! ¡Aún no hay quedada creada! Espera a que el staff cree una.');
         }
+        //let dias = msg.text?.replace('/apuntame', '');  // De aquí sacamos los días que se apunte el usuario, ej:   /apuntame viernes sabado
         let dias = msg.text?.replace('/apuntame', '');  // De aquí sacamos los días que se apunte el usuario, ej:   /apuntame viernes sabado
 
         if (!dias || !dias.length > 0) {
@@ -611,10 +602,9 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                                 const data = proximaQuedada(msg);
                                 const messageToPin = await bot.sendMessage(chatId, generarListaQuedada(data));
                                 data.idQuedada = messageToPin.message_id;
+                                await updatePost(data);
                                 await bot.pinChatMessage(chatId, data.idQuedada, { disable_notification: true });
-
-                                const encryptedData = encryptData(data);
-                                await updatePost(encryptedData);
+                                
                             }
                     } catch (e) {
                         if (e.name === "CustomError"){
@@ -632,11 +622,10 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                                 const chatMember = await bot.getChatMember(chatId, user.id);
 
                                 const modifiedData = await semanal(user, chatMember, msg);
+                                await updatePost(modifiedData);
+
                                 await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                                 await bot.sendMessage(chatId, `¡Semanal actualizado, @${user.username || user.first_name}! Comprueba el mensaje fijado de la quedada.`);
-
-                                const encryptedData = encryptData(modifiedData);
-                                await updatePost(encryptedData);
                             }
                     } catch (e) {
                         if (e.name === "CustomError"){
@@ -652,32 +641,16 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
 
                         if (user) {
                             const modifiedData = await apuntame(user, msg);
+                            await updatePost(modifiedData);
+
                             await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                             await bot.sendMessage(chatId, `¡Vale, estás dentro, @${user.username || user.first_name}!`);
-                            
-                            const encryptedData = encryptData(modifiedData);
-                            await updatePost(encryptedData);
                         }
                     }
                     catch (e) {
                         if (e.name === "CustomError"){
                             await bot.sendMessage(chatId, e.message);
                         }
-                    }
-                    break;
-                case "/apuntameTest":
-                    try {
-                        if (user) {
-                            const modifiedData = await apuntame(user, msg);
-                            await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
-                            await bot.sendMessage(chatId, `¡Vale, estás dentro, @${user.username || user.first_name}!`);
-                            
-                            const encryptedData = encryptData(modifiedData);
-                            await updatePost(encryptedData);
-                        }
-                    }
-                    catch (e) {
-                        await bot.sendMessage(chatId, JSON.stringify(e));
                     }
                     break;
                 case "/apuntarSeta":
@@ -688,11 +661,10 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
 
                         if (user) {
                             const modifiedData = await apuntarSeta(user, msg);
+                            await updatePost(modifiedData);
+
                             await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                             await bot.sendMessage(chatId, `¡Setup apuntada, @${user.username || user.first_name}! Gracias por aportar material. 😊`);
-
-                            const encryptedData = encryptData(modifiedData);
-                            await updatePost(encryptedData);
                         }
                     } 
                     catch(e) {
@@ -709,11 +681,10 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
 
                         if (user) {
                             const modifiedData = await quitame(user, msg);
+                            await updatePost(modifiedData);
+
                             await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                             await bot.sendMessage(chatId, `¡Ya no estás en la quedada, @${user.username || user.first_name}! Esperamos verte en la próxima.`);
-
-                            const encryptedData = encryptData(modifiedData);
-                            await updatePost(encryptedData);
                         }
                     } 
                     catch (e) {
@@ -730,11 +701,10 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
 
                         if (user) {
                             const modifiedData = await quitarSeta(user, msg);
+                            await updatePost(modifiedData);
+
                             await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
                             await bot.sendMessage(chatId, `¡Setup quitada, @${user.username || user.first_name}!`);
-
-                            const encryptedData = encryptData(modifiedData);
-                            await updatePost(encryptedData);
                         }
                     } 
                     catch (e) {
@@ -756,8 +726,8 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                 case "/soymalo":
                     await bot.sendMessage(chatId, gitGud());
                     break;
-                default:
-                    await bot.sendMessage(chatId, 'Deja de inventarte comandos, por favor');
+                case "/aviso":
+                    await bot.sendMessage(idSmashMalaga, msg.text?.replace('/aviso', ''));
                     break;
             }
         }
