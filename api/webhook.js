@@ -12,16 +12,6 @@ module.exports = async (request, response) => {
     /////////////// database methods ///////////////////////
 
     async function updatePost (newData) {
-        /*try {
-            const res = await RentryClient.edit({
-                id: rentryId,
-                token: rentryToken,
-                data: paste_content,
-            });
-            console.log(res);
-        } catch (e) {
-            console.log(e.message, 'Error while updating post. Please try again');
-        }*/
         let myString = null;
         if (typeof(newData) !== "string") {
             myString = JSON.stringify(newData);
@@ -33,9 +23,6 @@ module.exports = async (request, response) => {
     }
 
     async function loadData () {
-        /*const res = await RentryClient.raw(rentryId);
-        return res.content;*/
-
         const response = await fetch('https://serverless-smash-malaga-bot-rentry-backend.vercel.app', {
             method: 'GET',
         })
