@@ -716,6 +716,8 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                 case "/aviso":
                     await bot.sendMessage(idSmashMalaga, msg.text?.replace('/aviso', ''));
                     break;
+                default:
+                    break;
             }
         }
     }
