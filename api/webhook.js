@@ -1,5 +1,6 @@
 const RentryClient = require("rentry-client");
 const TelegramBot = require("node-telegram-bot-api");
+const CryptoJS = require('crypto-js');
 
 const diaSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]; // Array con días de la semana
 const mes = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]; // Array con los meses
@@ -10,15 +11,17 @@ module.exports = async (request, response) => {
     const idSmashMalaga = process.env.ID_SMASH_MALAGA;
     const rentryId = process.env.RENTRY_ID;
     const editToken = process.env.EDIT_TOKEN;
+    const encKey = process.env.ENCRYPTION_KEY;
 
     /////////////// data access methods ///////////////////////
 
     async function updatePost (newData) {
         try {
+            const cypherText = CryptoJS.AES.encrypt(newData, encKey).toString();
             const res = await RentryClient.edit({
                 id: rentryId,
                 token: editToken,
-                data: newData,
+                data: cypherText,
             });
             return res.content;
         } catch (e) {
@@ -28,8 +31,11 @@ module.exports = async (request, response) => {
 
     async function loadData () {
         try {
-            const res = await RentryClient.raw(rentryId)
-            return res.content;
+            const res = await RentryClient.raw(rentryId);
+            const bytes = CryptoJS.AES.decrypt(res.content, encKey);
+            const quedada = bytes.toString(CryptoJS.enc.Utf8);
+
+            return quedada;
         } catch (e) {
             return e.message;
         }
