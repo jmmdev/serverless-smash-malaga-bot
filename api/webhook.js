@@ -8,24 +8,70 @@ module.exports = async (request, response) => {
     const botUrl = process.env.BOT_URL;
     const telegramToken = process.env.TELEGRAM_TOKEN;
     const idSmashMalaga = process.env.ID_SMASH_MALAGA;
+    const rentryId = process.env.RENTRY_ID;
+    const editToken = process.env.EDIT_TOKEN;
 
-    /////////////// database methods ///////////////////////
+    /////////////// data access methods ///////////////////////
+
+    const getToken = async () => {
+        const response = await fetch('https://rentry.co', {
+            headers: {
+                'Referer': 'https://rentry.co',
+            },
+        });
+
+        const headers = response.headers;
+        const cookie_data = headers.map['set-cookie'].split(';')
+        for (let i = 0; i < cookie_data.length; i++) {
+            cookie_data[i] = cookie_data[i].trim().split('=');
+            if (cookie_data[i][0] === 'csrftoken') {
+                return cookie_data[i][1];
+            }
+        }
+
+        return null;
+    };
 
     async function updatePost (newData) {
         let myString = null;
         if (typeof(newData) !== "string") {
             myString = JSON.stringify(newData);
         }
+        /*
         const res = await fetch(`https://serverless-smash-malaga-bot-rentry-backend.vercel.app/update?info=${myString || newData}`, {
             method: 'POST',
         });
-        console.log(res);
+        console.log(res);*/
+        const csrftoken = await getToken();
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', csrftoken);
+        formData.append('edit_code', editToken);
+        formData.append('text', myString || newData);
+
+        await fetch(`https://rentry.co/${rentryId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Referer': 'https://rentry.co',
+                'Content-Type': 'multipart/form-data',
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData,
+        });
     }
 
     async function loadData () {
-        const response = await fetch('https://serverless-smash-malaga-bot-rentry-backend.vercel.app', {
+        /*const response = await fetch('https://serverless-smash-malaga-bot-rentry-backend.vercel.app', {
             method: 'GET',
-        })
+        })*/
+        const response = await fetch(`https://rentry.co/${rentryId}/raw`, {
+            headers: {
+                'Referer': 'https://rentry.co',
+                'Accept': 'application/json',
+                'Content-Type': 'text/plain',
+                'rentry-auth': `${process.env.AUTH_CODE}`,
+            },
+        });
         const json = await response.json();
         return json.data;
     }
@@ -567,7 +613,18 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
         const regex = /^\/{1}[A-Z_a-z0-9]+(\s*(\w)*)*$/;
         const regexarroba = /^\/{1}[A-Z_a-z0-9]+(@smashmalaga_bot)(\s*(\w)*)*$/
 
+        // AVISO MANTENIMIENTO
+
+        async function avisoMantenimiento() {
+            if (chatId === Number(idSmashMalaga)) {
+                throw new CustomError('Lo siento, estamos de mantenimiento. Peínate con un posavasos, gracias.');
+            }
+        }
+
+        // END AVISO
+
         if (command.match(regex) || command.match(regexarroba)) {
+            await avisoMantenimiento();
             parsedCommand = command.replace('@smashmalaga_bot', '');
             switch (parsedCommand) {
                 case "/start":
@@ -698,6 +755,106 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                         if (e.name === "CustomError"){
                             await bot.sendMessage(chatId, e.message);
                         }
+                    }
+                    break;
+                    case "/proximaQuedadaTest":
+                    try {
+                                const data = proximaQuedada(msg);
+                                const messageToPin = await bot.sendMessage(chatId, generarListaQuedada(data));
+                                data.idQuedada = messageToPin.message_id;
+                                await updatePost(data);
+                                //await bot.pinChatMessage(chatId, data.idQuedada, { disable_notification: true });
+                    } catch (e) {
+                        if (e.name === "CustomError"){
+                            await bot.sendMessage(chatId, e.message);
+                        }
+                    }
+                    break;
+                case "/semanalTest":
+                    try {
+                            if (user) {
+                                const chatMember = await bot.getChatMember(chatId, user.id);
+
+                                const modifiedData = await semanal(user, chatMember, msg);
+                                await updatePost(modifiedData);
+
+                                //await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
+                                await bot.sendMessage(chatId, `¡Semanal actualizado, @${user.username || user.first_name}! Comprueba el mensaje fijado de la quedada.`);
+                            }
+                    } catch (e) {
+                        if (e.name === "CustomError"){
+                            await bot.sendMessage(chatId, e.message);
+                        }
+                    }
+                    break;
+                case "/apuntameTest":
+                    try {
+                        if (user) {
+                            const modifiedData = await apuntame(user, msg);
+                            await updatePost(modifiedData);
+
+                            //await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
+                            await bot.sendMessage(chatId, `¡Vale, estás dentro, @${user.username || user.first_name}!`);
+                        }
+                    }
+                    catch (e) {
+                        if (e.name === "CustomError"){
+                            await bot.sendMessage(chatId, e.message);
+                        }
+                    }
+                    break;
+                case "/apuntarSetaTest":
+                    try {
+                        if (user) {
+                            const modifiedData = await apuntarSeta(user, msg);
+                            await updatePost(modifiedData);
+
+                            //await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
+                            await bot.sendMessage(chatId, `¡Setup apuntada, @${user.username || user.first_name}! Gracias por aportar material. 😊`);
+                        }
+                    } 
+                    catch(e) {
+                        if (e.name === "CustomError"){
+                            await bot.sendMessage(chatId, e.message);
+                        }
+                    }
+                    break;
+                case "/quitameTest":
+                    try {
+                        if (user) {
+                            const modifiedData = await quitame(user, msg);
+                            await updatePost(modifiedData);
+
+                            //await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
+                            await bot.sendMessage(chatId, `¡Ya no estás en la quedada, @${user.username || user.first_name}! Esperamos verte en la próxima.`);
+                        }
+                    } 
+                    catch (e) {
+                        if (e.name === "CustomError"){
+                            await bot.sendMessage(chatId, e.message);
+                        }
+                    }
+                    break;
+                case "/quitarSetaTest":
+                    try {
+                        if (user) {
+                            const modifiedData = await quitarSeta(user, msg);
+                            await updatePost(modifiedData);
+
+                            //await bot.editMessageText(generarListaQuedada(modifiedData), { chat_id: chatId, message_id: modifiedData.idQuedada });
+                            await bot.sendMessage(chatId, `¡Setup quitada, @${user.username || user.first_name}!`);
+                        }
+                    } 
+                    catch (e) {
+                        if (e.name === "CustomError"){
+                            await bot.sendMessage(chatId, e.message);
+                        }
+                    }
+                    break;
+                case "getRentryData":
+                    const {data, quedadaExists} = await startingExecution();
+                    if (quedadaExists) {
+                        await bot.sendMessage(chatId, generarListaQuedada(data));
                     }
                     break;
                 case "/aiuda":
