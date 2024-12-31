@@ -478,8 +478,8 @@ Quita tu setup de los días que no puedas llevarla (separados por espacios) (Eje
 /ruleset
 Imprime una imagen del reglamento oficial en el que jugamos con su stagelist actual en Smash Málaga. /fullruleset para el procedimiento completo.
 
-/soymalo
-Si suckeas y quieres dejar de suckear, es tu comando`
+/cositas
+Algunos recursos a la hora de jugar, streamear o incluso reportar partidas. Se irá actualizando progresivamente si surgen nuevas herramientas.`
         );
     }
 
@@ -509,21 +509,23 @@ Si suckeas y quieres dejar de suckear, es tu comando`
         )
     }
 
-    function gitGud() {
+    function resources() {
         return (
-`Así que eres malísim@, no te preocupes, aquí te dejo un documento espectacular:
+`Aquí tienes algunos recursos que pueden ayudarte:
 
-https://docs.google.com/document/d/1WaDOm4X1iDxfXb7oHQBRE7tPD9wX9mLdagw4JzqzT4w/edit?pli=1
+- Compendio enorme acerca de todo lo que tiene que ver con el competitivo de Smash Ultimate (completamente en inglés 🇬🇧)
+<a href="https://docs.google.com/document/d/1WaDOm4X1iDxfXb7oHQBRE7tPD9wX9mLdagw4JzqzT4w/edit?pli=1">AQUÍ</a>
 
-Tiene de todo:
+- App web para baneos, actualizada al ruleset actual y personalizable. Tanto en español como en inglés
+<a href="https://react-stage-striking.vercel.app">AQUÍ</a>
 
-- Enlace a todos los discord de Smash Ultimate de interés
-- Varias herramientas con información técnica del juego
-- Guías (escritas y audiovisuales) de todos los niveles que abarcan desde los aspectos más básicos del juego a los más top 
-- Notas de todos los parches
-- Información sobre organizaciones, equipos y torneos de Smash Ultimate
+- Marcador para actualizar la información de OBS, el mismo que usamos en los torneos
+· <a href="https://github.com/jmmdev/stream-scoreboard/releases/download/v1.0.1/Stream.Scoreboard.msi">Descarga (Windows)</a>
+· <a href="https://github.com/jmmdev/stream-scoreboard/blob/main/README.md">Guía 🇬🇧</a>
+· <a href="https://github.com/jmmdev/stream-scoreboard/blob/main/README.es.md">Guía 🇪🇸</a>
 
-Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pregunta en este grupo`
+- Mi versión alternativa a start.gg para reportar resultados. Aún le tengo que hacer algunos ajustes de usabilidad, pero se puede probar perfectamente
+https://reported.vercel.app`
         )
     }
 
@@ -720,8 +722,8 @@ Eso sí, está todo en inglés 🇬🇧, así que si necesitas algo de ayuda, pr
                 case "/fullruleset":
                     await bot.sendMessage(chatId, fullruleset());
                     break;
-                case "/soymalo":
-                    await bot.sendMessage(chatId, gitGud());
+                case "/cositas":
+                    await bot.sendMessage(chatId, resources(), {disable_web_page_preview: true, parse_mode: "html"})
                     break;
                 case "/aviso":
                     await bot.sendMessage(idSmashMalaga, msg.text?.replace('/aviso', ''));
