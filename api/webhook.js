@@ -525,7 +525,10 @@ Algunos recursos a la hora de jugar, streamear o incluso reportar partidas. Se i
 · <a href="https://github.com/jmmdev/stream-scoreboard/blob/main/README.es.md">Guía 🇪🇸</a>
 
 - Mi versión alternativa a start.gg para reportar resultados. Aún le tengo que hacer algunos ajustes de usabilidad, pero se puede probar perfectamente
-https://reported.vercel.app`
+https://reported.vercel.app
+
+- Generador de top 8 y top 16
+https://sb16.vercel.app`
         )
     }
 
